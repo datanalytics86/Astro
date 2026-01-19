@@ -153,13 +153,13 @@ class HouseCalculator:
         system_byte = system.encode('ascii')
 
         # Calculate houses
-        # Returns (cusps[13], ascmc[10])
-        # cusps[0] is unused, cusps[1-12] are house cusps
+        # Returns (cusps[12], ascmc[10])
+        # cusps[0-11] are house cusps 1-12
         # ascmc contains: [Asc, MC, ARMC, Vertex, Equasc, Co-Asc, Polar-Asc, ...]
         cusps, ascmc = swe.houses(jd_ut, latitude, longitude, system_byte)
 
-        # Extract house cusps (skip index 0)
-        house_cusps = list(cusps[1:13])
+        # Extract house cusps (all 12)
+        house_cusps = list(cusps[0:12])
 
         # Extract key points
         ascendant = ascmc[0]

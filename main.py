@@ -196,7 +196,7 @@ def natal(config: str, output: Optional[str], json_output: Optional[str]):
 
         # Determine house
         house_num = "-"
-        if house_cusps:
+        if house_cusps and len(house_cusps) == 12:
             for i in range(12):
                 start = house_cusps[i]
                 end = house_cusps[(i + 1) % 12]

@@ -19,6 +19,9 @@ timezonefinder>=6.2.0
 matplotlib>=3.7.0
 plotly>=5.15.0
 
+# Web application
+streamlit>=1.28.0
+
 # Configuration
 pyyaml>=6.0.1
 

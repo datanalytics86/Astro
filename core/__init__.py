@@ -12,6 +12,9 @@ astrological analysis, including:
 - Station detection (stations)
 - Sign ingress detection (ingress)
 - Activation windows (windows)
+- Solar returns (solar_returns)
+- Secondary progressions (progressions)
+- Validation against JPL Horizons (validation)
 """
 
 from .time_engine import (
@@ -82,6 +85,30 @@ from .windows import (
     find_peak_windows,
 )
 
+from .solar_returns import (
+    SolarReturnCalculator,
+    SolarReturnData,
+    calculate_solar_return,
+    find_solar_return_time,
+)
+
+from .progressions import (
+    SecondaryProgressions,
+    ProgressedChart,
+    ProgressedLunarPhase,
+    calculate_progressions,
+    find_progressed_lunar_phases,
+    calculate_solar_arc,
+)
+
+from .validation import (
+    JPLHorizonsValidator,
+    ValidationResult,
+    validate_against_jpl,
+    validate_all,
+    run_internal_checks,
+)
+
 __all__ = [
     # Time
     "TimeEngine",
@@ -135,4 +162,22 @@ __all__ = [
     "ActivationWindow",
     "calculate_activation",
     "find_peak_windows",
+    # Solar Returns
+    "SolarReturnCalculator",
+    "SolarReturnData",
+    "calculate_solar_return",
+    "find_solar_return_time",
+    # Progressions
+    "SecondaryProgressions",
+    "ProgressedChart",
+    "ProgressedLunarPhase",
+    "calculate_progressions",
+    "find_progressed_lunar_phases",
+    "calculate_solar_arc",
+    # Validation
+    "JPLHorizonsValidator",
+    "ValidationResult",
+    "validate_against_jpl",
+    "validate_all",
+    "run_internal_checks",
 ]

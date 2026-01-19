@@ -1,0 +1,56 @@
+# Astro Engineering - Case Study Configuration
+# Birth data for validation and testing
+
+birth_data:
+  # Date and time
+  date: "1986-12-05"
+  time: "08:03:00"
+
+  # Location
+  location:
+    name: "Santiago, Chile"
+    latitude: -33.4489
+    longitude: -70.6693
+    elevation_m: 520
+
+  # Timezone
+  timezone: "America/Santiago"
+  # Note: On 1986-12-05, Chile was on summer time (CLST, UTC-3)
+  # Standard time is CLT (UTC-4)
+
+# Expected values for validation (approximate)
+# These will be verified against actual calculations
+expected_values:
+  ascendant:
+    sign: "Capricorn"
+    degree_approx: 11
+
+  mc:
+    sign: "Libra"
+    degree_approx: 25
+
+  sun:
+    sign: "Sagittarius"
+    degree_approx: 13
+
+  moon:
+    sign: "Aquarius"
+    degree_approx: 6
+
+# Analysis preferences for this case
+analysis:
+  # House system preference
+  house_system: "P"  # Placidus
+
+  # Transit analysis range
+  transit_range:
+    start: "2024-01-01"
+    end: "2026-12-31"
+
+  # Focus points for transit analysis
+  focus_points:
+    - sun
+    - moon
+    - mercury
+    - ascendant
+    - mc

@@ -1,0 +1,126 @@
+# Astro Engineering - Default Configuration
+
+# Ephemeris settings
+ephemeris:
+  # Path to Swiss Ephemeris data files (.se1)
+  # Leave empty to use MOSEPH (Moshier algorithm) as fallback
+  data_path: "data/ephemeris"
+
+  # Preferred calculation method
+  # SWIEPH: Swiss Ephemeris files (highest precision)
+  # MOSEPH: Moshier algorithm (no files needed, ~0.1 arcsec less precise)
+  preferred_method: "SWIEPH"
+
+  # Ayanamsa for sidereal calculations (if needed)
+  # Options: FAGAN_BRADLEY, LAHIRI, RAMAN, KRISHNAMURTI
+  ayanamsa: "LAHIRI"
+
+# Default house system
+houses:
+  default_system: "P"  # Placidus
+  # Available: P (Placidus), K (Koch), R (Regiomontanus),
+  #            C (Campanus), E (Equal), W (Whole Sign),
+  #            B (Alcabitius), M (Morinus), T (Topocentric)
+
+# Aspect configuration
+aspects:
+  # Major aspects with their orbs (degrees)
+  major:
+    conjunction: {angle: 0, orb: 8}
+    opposition: {angle: 180, orb: 8}
+    trine: {angle: 120, orb: 8}
+    square: {angle: 90, orb: 7}
+    sextile: {angle: 60, orb: 6}
+
+  # Minor aspects with their orbs
+  minor:
+    quincunx: {angle: 150, orb: 3}
+    semisextile: {angle: 30, orb: 2}
+    semisquare: {angle: 45, orb: 2}
+    sesquiquadrate: {angle: 135, orb: 2}
+    quintile: {angle: 72, orb: 2}
+    biquintile: {angle: 144, orb: 2}
+
+  # Orb modifications for specific bodies (multiplier)
+  orb_modifiers:
+    sun: 1.0
+    moon: 1.0
+    mercury: 0.8
+    venus: 0.8
+    mars: 0.8
+    jupiter: 0.9
+    saturn: 0.9
+    uranus: 0.7
+    neptune: 0.7
+    pluto: 0.7
+    chiron: 0.5
+    nodes: 0.6
+
+# Transit settings
+transits:
+  # Default bodies to track for transits
+  default_transiting_bodies:
+    - jupiter
+    - saturn
+    - uranus
+    - neptune
+    - pluto
+
+  # Default natal points to check
+  default_natal_points:
+    - sun
+    - moon
+    - mercury
+    - venus
+    - mars
+    - jupiter
+    - saturn
+    - ascendant
+    - mc
+
+  # Precision for finding exact aspects (days)
+  precision: 0.0001  # ~8.6 seconds
+
+  # Default orbs for transits (usually tighter than natal)
+  orbs:
+    conjunction: 2
+    opposition: 2
+    trine: 1.5
+    square: 1.5
+    sextile: 1
+
+# Visualization settings
+visualization:
+  # Default DPI for static images
+  dpi: 300
+
+  # Color scheme
+  colors:
+    fire_signs: "#E74C3C"
+    earth_signs: "#27AE60"
+    air_signs: "#3498DB"
+    water_signs: "#9B59B6"
+
+    aspects:
+      conjunction: "#FFD700"
+      opposition: "#E74C3C"
+      trine: "#27AE60"
+      square: "#E74C3C"
+      sextile: "#3498DB"
+      quincunx: "#95A5A6"
+
+  # Default style
+  style: "technical"  # technical, traditional, minimal
+
+# Output settings
+output:
+  directory: "output"
+  formats:
+    - json
+    - markdown
+
+  # Include precision estimates in output
+  include_precision: true
+
+  # Include calculation method info
+  include_method_info: true

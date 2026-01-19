@@ -1,0 +1,39 @@
+# Astro Engineering - Requirements
+# Python 3.10+
+
+# Swiss Ephemeris
+pyswisseph>=2.10.3.2
+
+# Scientific computing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Astronomy validation
+astropy>=5.3.0
+
+# Time zone handling
+pytz>=2023.3
+timezonefinder>=6.2.0
+
+# Visualization
+matplotlib>=3.7.0
+plotly>=5.15.0
+
+# Configuration
+pyyaml>=6.0.1
+
+# CLI
+click>=8.1.0
+rich>=13.4.0
+
+# Calendar export
+icalendar>=5.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Development
+black>=23.7.0
+isort>=5.12.0
+mypy>=1.4.0

@@ -150,7 +150,7 @@ class HouseCalculator:
             )
 
         # Convert system to bytes for Swiss Ephemeris
-        system_byte = ord(system)
+        system_byte = system.encode('ascii')
 
         # Calculate houses
         # Returns (cusps[13], ascmc[10])

@@ -34,6 +34,13 @@ from core.interpretations import (
     TRANSIT_INTERPRETATIONS,
     PLANET_IN_SIGN,
 )
+from core.forecast import (
+    generate_personal_forecast,
+    EventType,
+    DecisionCategory,
+    filter_events_by_importance,
+    get_monthly_summary,
+)
 from data.symbols import (
     longitude_to_zodiacal,
     ZODIAC_SYMBOLS,
@@ -97,6 +104,45 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         border-left: 3px solid #10b981;
     }
+    .event-card {
+        background: white;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin: 8px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .event-favorable {
+        border-left: 4px solid #10b981;
+    }
+    .event-challenging {
+        border-left: 4px solid #ef4444;
+    }
+    .event-neutral {
+        border-left: 4px solid #6366f1;
+    }
+    .power-day {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-left: 4px solid #f59e0b;
+    }
+    .milestone-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .milestone-date {
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+    .importance-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .importance-5 { background: #fee2e2; color: #991b1b; }
+    .importance-4 { background: #fef3c7; color: #92400e; }
+    .importance-3 { background: #dbeafe; color: #1e40af; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -146,6 +192,7 @@ def main():
         nav_labels = [
             "🏠 Inicio",
             "📊 Carta Natal",
+            "🎯 Pronóstico Personal",
             "🔄 Tránsitos",
             "🌙 Retorno Solar",
             "📈 Progresiones",
@@ -156,6 +203,7 @@ def main():
         nav_labels = [
             "🏠 Home",
             "📊 Natal Chart",
+            "🎯 Personal Forecast",
             "🔄 Transits",
             "🌙 Solar Return",
             "📈 Progressions",
@@ -173,6 +221,8 @@ def main():
         show_home()
     elif "Carta Natal" in page or "Natal Chart" in page:
         show_natal_chart()
+    elif "Pronóstico Personal" in page or "Personal Forecast" in page:
+        show_personal_forecast()
     elif "Tránsitos" in page or "Transits" in page:
         show_transits()
     elif "Retorno Solar" in page or "Solar Return" in page:
@@ -582,6 +632,373 @@ def show_natal_chart():
             st.subheader("Datos de Conversión de Tiempo" if lang == "es" else "Time Conversion Data")
             time_data = time_result.to_dict()
             st.json(time_data)
+
+
+def show_personal_forecast():
+    """Personal forecast page - Advanced astrological engineering."""
+    lang = st.session_state.lang
+
+    if lang == "es":
+        st.title("🎯 Pronóstico Personal Avanzado")
+        st.markdown("""
+        **Ingeniería Astrológica Avanzada**: Calcula tus hitos astronómicos personales,
+        fechas de poder y ventanas óptimas para tomar decisiones importantes.
+        """)
+    else:
+        st.title("🎯 Advanced Personal Forecast")
+        st.markdown("""
+        **Advanced Astrological Engineering**: Calculate your personal astronomical milestones,
+        power days, and optimal windows for making important decisions.
+        """)
+
+    with st.expander("Datos de Nacimiento" if lang == "es" else "Birth Data", expanded=True):
+        birth_data = get_birth_data_inputs()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        forecast_months = st.slider(
+            "Meses a pronosticar" if lang == "es" else "Months to forecast",
+            min_value=3,
+            max_value=24,
+            value=12,
+        )
+    with col2:
+        min_importance = st.select_slider(
+            "Importancia mínima" if lang == "es" else "Minimum importance",
+            options=[1, 2, 3, 4, 5],
+            value=3,
+            format_func=lambda x: f"{'⭐' * x}"
+        )
+
+    if st.button(
+        "🔮 Generar Pronóstico Personal" if lang == "es" else "🔮 Generate Personal Forecast",
+        type="primary"
+    ):
+        birth_dt = datetime.combine(birth_data["date"], birth_data["time"])
+
+        with st.spinner(
+            "Calculando hitos astronómicos personales..." if lang == "es"
+            else "Calculating personal astronomical milestones..."
+        ):
+            try:
+                forecast = generate_personal_forecast(
+                    birth_dt,
+                    birth_data["latitude"],
+                    birth_data["longitude"],
+                    birth_data["timezone"],
+                    forecast_months
+                )
+
+                # Store in session state
+                st.session_state.personal_forecast = forecast
+                st.session_state.forecast_importance = min_importance
+
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+                return
+
+        st.success(
+            f"✅ Pronóstico generado: {len(forecast.events)} eventos encontrados"
+            if lang == "es"
+            else f"✅ Forecast generated: {len(forecast.events)} events found"
+        )
+
+    # Display forecast if available
+    if "personal_forecast" in st.session_state:
+        forecast = st.session_state.personal_forecast
+        min_imp = st.session_state.get("forecast_importance", 3)
+
+        # Filter events by importance
+        filtered_events = filter_events_by_importance(forecast.events, min_imp)
+
+        # Summary metrics
+        st.markdown("---")
+        if lang == "es":
+            st.subheader("📊 Resumen de tu Pronóstico")
+        else:
+            st.subheader("📊 Your Forecast Summary")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            st.metric(
+                "Sol Natal" if lang == "es" else "Natal Sun",
+                forecast.natal_sun_sign
+            )
+        with col2:
+            st.metric(
+                "Luna Natal" if lang == "es" else "Natal Moon",
+                forecast.natal_moon_sign
+            )
+        with col3:
+            st.metric(
+                "Ascendente" if lang == "es" else "Rising",
+                forecast.natal_rising_sign
+            )
+        with col4:
+            st.metric(
+                "Días de Poder" if lang == "es" else "Power Days",
+                len(forecast.power_days)
+            )
+
+        # Tabs for different views
+        if lang == "es":
+            tab_labels = [
+                "📅 Hitos Importantes",
+                "⚡ Días de Poder",
+                "🌙 Fases Lunares",
+                "⚠️ Períodos de Precaución",
+                "💡 Ventanas de Decisión",
+                "📆 Vista Mensual"
+            ]
+        else:
+            tab_labels = [
+                "📅 Important Milestones",
+                "⚡ Power Days",
+                "🌙 Lunar Phases",
+                "⚠️ Caution Periods",
+                "💡 Decision Windows",
+                "📆 Monthly View"
+            ]
+
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(tab_labels)
+
+        with tab1:
+            # Important milestones (high importance events)
+            if lang == "es":
+                st.markdown("### 🎯 Hitos Astronómicos Clave")
+                st.markdown("*Fechas importantes para tomar decisiones trascendentales*")
+            else:
+                st.markdown("### 🎯 Key Astronomical Milestones")
+                st.markdown("*Important dates for making significant decisions*")
+
+            important_events = [e for e in filtered_events if e.importance >= 4]
+
+            for event in important_events[:20]:
+                importance_class = f"importance-{event.importance}"
+                card_class = "event-favorable" if event.is_favorable else "event-challenging"
+
+                st.markdown(f"""
+                <div class="event-card {card_class}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="milestone-header">{event.title}</span>
+                        <span class="importance-badge {importance_class}">{"⭐" * event.importance}</span>
+                    </div>
+                    <div class="milestone-date">📅 {event.date.strftime("%d %B %Y, %H:%M")}</div>
+                    <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with tab2:
+            # Power days
+            if lang == "es":
+                st.markdown("### ⚡ Tus Días de Poder Personal")
+                st.markdown("*Días donde múltiples factores astrológicos te favorecen*")
+            else:
+                st.markdown("### ⚡ Your Personal Power Days")
+                st.markdown("*Days when multiple astrological factors favor you*")
+
+            power_events = [e for e in filtered_events if e.event_type == EventType.POWER_DAY]
+
+            if power_events:
+                for event in power_events[:15]:
+                    score = event.details.get("power_score", 0)
+                    reasons = event.details.get("reasons", [])
+
+                    st.markdown(f"""
+                    <div class="event-card power-day">
+                        <div class="milestone-header">⚡ {event.date.strftime("%d %B %Y")}</div>
+                        <div style="font-size: 1.2rem; margin: 5px 0;">Puntuación: {score}/10</div>
+                        <ul style="margin: 5px 0;">
+                            {"".join(f"<li>{r}</li>" for r in reasons)}
+                        </ul>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info(
+                    "No se encontraron días de poder con la importancia seleccionada."
+                    if lang == "es"
+                    else "No power days found with selected importance level."
+                )
+
+        with tab3:
+            # Lunar phases
+            if lang == "es":
+                st.markdown("### 🌙 Fases Lunares y su Significado")
+                st.markdown("*Las lunas nuevas y llenas marcan ciclos de inicio y culminación*")
+            else:
+                st.markdown("### 🌙 Lunar Phases and Their Meaning")
+                st.markdown("*New and full moons mark cycles of beginning and culmination*")
+
+            lunar_events = [e for e in filtered_events if e.event_type == EventType.LUNAR_PHASE]
+
+            for event in lunar_events:
+                phase = event.details.get("phase", "")
+                is_new = "Nueva" in phase or "New" in phase
+
+                if is_new:
+                    emoji = "🌑"
+                    card_class = "event-favorable"
+                else:
+                    emoji = "🌕"
+                    card_class = "event-neutral"
+
+                st.markdown(f"""
+                <div class="event-card {card_class}">
+                    <div class="milestone-header">{emoji} {event.title}</div>
+                    <div class="milestone-date">📅 {event.date.strftime("%d %B %Y, %H:%M")}</div>
+                    <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with tab4:
+            # Caution periods (retrogrades, challenging aspects)
+            if lang == "es":
+                st.markdown("### ⚠️ Períodos de Precaución")
+                st.markdown("*Retrógrados y aspectos desafiantes - mejor para revisar que iniciar*")
+            else:
+                st.markdown("### ⚠️ Caution Periods")
+                st.markdown("*Retrogrades and challenging aspects - better for review than initiation*")
+
+            caution_events = [e for e in filtered_events
+                             if e.event_type == EventType.RETROGRADE or not e.is_favorable]
+
+            for event in caution_events[:15]:
+                st.markdown(f"""
+                <div class="event-card event-challenging">
+                    <div class="milestone-header">⚠️ {event.title}</div>
+                    <div class="milestone-date">📅 {event.date.strftime("%d %B %Y")}</div>
+                    <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with tab5:
+            # Decision windows by category
+            if lang == "es":
+                st.markdown("### 💡 Ventanas Óptimas para Decisiones")
+                st.markdown("*Selecciona el área de tu vida para ver las mejores fechas*")
+
+                category_options = {
+                    "💰 Finanzas e Inversiones": DecisionCategory.FINANCES,
+                    "❤️ Amor y Relaciones": DecisionCategory.LOVE,
+                    "💼 Carrera y Negocios": DecisionCategory.CAREER,
+                    "🏥 Salud y Bienestar": DecisionCategory.HEALTH,
+                    "✈️ Viajes": DecisionCategory.TRAVEL,
+                    "📝 Contratos y Documentos": DecisionCategory.CONTRACTS,
+                    "🌱 Nuevos Comienzos": DecisionCategory.NEW_BEGINNINGS,
+                    "🏁 Cierres y Finalizaciones": DecisionCategory.COMPLETION,
+                }
+            else:
+                st.markdown("### 💡 Optimal Decision Windows")
+                st.markdown("*Select the area of your life to see the best dates*")
+
+                category_options = {
+                    "💰 Finances & Investments": DecisionCategory.FINANCES,
+                    "❤️ Love & Relationships": DecisionCategory.LOVE,
+                    "💼 Career & Business": DecisionCategory.CAREER,
+                    "🏥 Health & Wellness": DecisionCategory.HEALTH,
+                    "✈️ Travel": DecisionCategory.TRAVEL,
+                    "📝 Contracts & Documents": DecisionCategory.CONTRACTS,
+                    "🌱 New Beginnings": DecisionCategory.NEW_BEGINNINGS,
+                    "🏁 Completions & Endings": DecisionCategory.COMPLETION,
+                }
+
+            selected_category_label = st.selectbox(
+                "Área de decisión" if lang == "es" else "Decision area",
+                options=list(category_options.keys())
+            )
+            selected_category = category_options[selected_category_label]
+
+            category_events = [e for e in filtered_events
+                              if e.category == selected_category and e.is_favorable]
+
+            if category_events:
+                st.markdown(f"**{'Mejores fechas para' if lang == 'es' else 'Best dates for'} {selected_category_label}:**")
+
+                for event in category_events[:10]:
+                    st.markdown(f"""
+                    <div class="event-card event-favorable">
+                        <div class="milestone-header">✨ {event.title}</div>
+                        <div class="milestone-date">📅 {event.date.strftime("%d %B %Y")}</div>
+                        <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info(
+                    f"No se encontraron ventanas favorables para {selected_category_label} en el período seleccionado."
+                    if lang == "es"
+                    else f"No favorable windows found for {selected_category_label} in the selected period."
+                )
+
+        with tab6:
+            # Monthly calendar view
+            if lang == "es":
+                st.markdown("### 📆 Vista Mensual")
+            else:
+                st.markdown("### 📆 Monthly View")
+
+            # Get unique months in forecast
+            months = sorted(set((e.date.year, e.date.month) for e in filtered_events))
+
+            if months:
+                month_names_es = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+                month_names_en = ["", "January", "February", "March", "April", "May", "June",
+                                  "July", "August", "September", "October", "November", "December"]
+
+                month_labels = [
+                    f"{month_names_es[m] if lang == 'es' else month_names_en[m]} {y}"
+                    for y, m in months
+                ]
+
+                selected_month_idx = st.selectbox(
+                    "Seleccionar mes" if lang == "es" else "Select month",
+                    range(len(months)),
+                    format_func=lambda i: month_labels[i]
+                )
+
+                selected_year, selected_month = months[selected_month_idx]
+                summary = get_monthly_summary(filtered_events, selected_month, selected_year)
+
+                # Month summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric(
+                        "Total Eventos" if lang == "es" else "Total Events",
+                        summary["total_events"]
+                    )
+                with col2:
+                    st.metric(
+                        "Favorables" if lang == "es" else "Favorable",
+                        summary["favorable"]
+                    )
+                with col3:
+                    st.metric(
+                        "Desafiantes" if lang == "es" else "Challenging",
+                        summary["challenging"]
+                    )
+                with col4:
+                    st.metric(
+                        "Alta Importancia" if lang == "es" else "High Importance",
+                        summary["high_importance"]
+                    )
+
+                # List events for selected month
+                st.markdown("---")
+                for event in summary["events"]:
+                    card_class = "event-favorable" if event.is_favorable else "event-challenging"
+                    if event.event_type == EventType.POWER_DAY:
+                        card_class = "power-day"
+
+                    st.markdown(f"""
+                    <div class="event-card {card_class}">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="milestone-header">{event.title}</span>
+                            <span class="milestone-date">{event.date.strftime("%d %b")}</span>
+                        </div>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">{event.description[:100]}...</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 
 def show_transits():

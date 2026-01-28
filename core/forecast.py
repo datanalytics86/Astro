@@ -752,14 +752,14 @@ def calculate_power_days(natal_sun_longitude: float,
 def generate_personal_forecast(birth_datetime: datetime,
                                latitude: float,
                                longitude: float,
-                               timezone: str,
+                               tz_name: str,
                                forecast_months: int = 12) -> PersonalForecast:
     """Generate complete personal forecast."""
     from .time_engine import local_to_ut
     from .houses import calculate_houses
 
     # Calculate natal chart
-    time_result = local_to_ut(birth_datetime, timezone, latitude, longitude)
+    time_result = local_to_ut(birth_datetime, tz_name, latitude, longitude)
     natal_positions = get_all_positions(time_result.jd_tt)
     houses = calculate_houses(time_result.jd_ut, latitude, longitude, "P")
 

@@ -7,7 +7,7 @@ This is advanced astrological engineering for life planning.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Tuple
 from enum import Enum
 
@@ -772,7 +772,7 @@ def generate_personal_forecast(birth_datetime: datetime,
     natal_dict["mc"] = houses.mc
 
     # Date range
-    start_date = datetime.now()
+    start_date = datetime.now(timezone.utc)
     end_date = start_date + timedelta(days=forecast_months * 30)
 
     # Gather all events

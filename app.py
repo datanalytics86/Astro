@@ -775,19 +775,31 @@ def show_personal_forecast():
             important_events = [e for e in filtered_events if e.importance >= 4]
 
             for event in important_events[:20]:
-                importance_class = f"importance-{event.importance}"
                 card_class = "event-favorable" if event.is_favorable else "event-challenging"
 
-                st.markdown(f"""
-                <div class="event-card {card_class}">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span class="milestone-header">{event.title}</span>
-                        <span class="importance-badge {importance_class}">{"⭐" * event.importance}</span>
-                    </div>
-                    <div class="milestone-date">📅 {event.date.strftime("%d %B %Y, %H:%M")}</div>
-                    <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                with st.container():
+                    col_date, col_stars = st.columns([4, 1])
+                    with col_date:
+                        st.markdown(f"### {event.title}")
+                        st.caption(f"📅 {event.date.strftime('%d %B %Y, %H:%M')}")
+                    with col_stars:
+                        st.markdown(f"{'⭐' * event.importance}")
+
+                    # Show theme if available
+                    if event.details.get("theme"):
+                        st.info(f"**Tema:** {event.details['theme']}")
+
+                    # Show full interpretation with markdown formatting
+                    if event.details.get("meaning"):
+                        st.markdown(f"**Significado:** {event.details['meaning']}")
+
+                    if event.details.get("advice"):
+                        st.success(f"💡 **Consejo:** {event.details['advice']}")
+
+                    if event.details.get("duration"):
+                        st.caption(f"⏱️ {event.details['duration']}")
+
+                    st.markdown("---")
 
         with tab2:
             # Power days
@@ -834,22 +846,39 @@ def show_personal_forecast():
 
             for event in lunar_events:
                 phase = event.details.get("phase", "")
+                moon_sign = event.details.get("moon_sign", "")
                 is_new = "Nueva" in phase or "New" in phase
 
                 if is_new:
                     emoji = "🌑"
-                    card_class = "event-favorable"
-                else:
+                elif "Llena" in phase or "Full" in phase:
                     emoji = "🌕"
-                    card_class = "event-neutral"
+                elif "Creciente" in phase:
+                    emoji = "🌓"
+                else:
+                    emoji = "🌗"
 
-                st.markdown(f"""
-                <div class="event-card {card_class}">
-                    <div class="milestone-header">{emoji} {event.title}</div>
-                    <div class="milestone-date">📅 {event.date.strftime("%d %B %Y, %H:%M")}</div>
-                    <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                with st.container():
+                    st.markdown(f"### {emoji} {event.title}")
+                    st.caption(f"📅 {event.date.strftime('%d %B %Y, %H:%M')}")
+
+                    # General meaning
+                    if event.details.get("general"):
+                        st.markdown(f"**📖 Significado:** {event.details['general']}")
+
+                    # Sign focus
+                    if event.details.get("sign_focus"):
+                        st.info(f"🔮 {event.details['sign_focus']}")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if event.details.get("advice"):
+                            st.success(f"💡 **Hacer:** {event.details['advice']}")
+                    with col2:
+                        if event.details.get("avoid"):
+                            st.warning(f"⚠️ **Evitar:** {event.details['avoid']}")
+
+                    st.markdown("---")
 
         with tab4:
             # Caution periods (retrogrades, challenging aspects)
@@ -864,13 +893,31 @@ def show_personal_forecast():
                              if e.event_type == EventType.RETROGRADE or not e.is_favorable]
 
             for event in caution_events[:15]:
-                st.markdown(f"""
-                <div class="event-card event-challenging">
-                    <div class="milestone-header">⚠️ {event.title}</div>
-                    <div class="milestone-date">📅 {event.date.strftime("%d %B %Y")}</div>
-                    <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                with st.container():
+                    st.markdown(f"### ⚠️ {event.title}")
+                    st.caption(f"📅 {event.date.strftime('%d %B %Y')}")
+
+                    # For retrogrades, show specific guidance
+                    if event.event_type == EventType.RETROGRADE:
+                        station_type = event.details.get("station_type", "")
+                        if station_type == "retrograde":
+                            st.error("**Período de Precaución Activo**")
+                        else:
+                            st.success("**Fin del período de precaución**")
+
+                    # Show meaning and advice
+                    if event.details.get("meaning"):
+                        st.markdown(f"**Significado:** {event.details['meaning']}")
+                    elif event.details.get("theme"):
+                        st.warning(f"**Tema:** {event.details['theme']}")
+
+                    if event.details.get("advice"):
+                        st.info(f"💡 **Consejo:** {event.details['advice']}")
+
+                    if event.details.get("duration"):
+                        st.caption(f"⏱️ {event.details['duration']}")
+
+                    st.markdown("---")
 
         with tab5:
             # Decision windows by category
@@ -914,15 +961,26 @@ def show_personal_forecast():
 
             if category_events:
                 st.markdown(f"**{'Mejores fechas para' if lang == 'es' else 'Best dates for'} {selected_category_label}:**")
+                st.markdown("")
 
                 for event in category_events[:10]:
-                    st.markdown(f"""
-                    <div class="event-card event-favorable">
-                        <div class="milestone-header">✨ {event.title}</div>
-                        <div class="milestone-date">📅 {event.date.strftime("%d %B %Y")}</div>
-                        <p style="margin-top: 8px; margin-bottom: 0;">{event.description}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    with st.container():
+                        st.markdown(f"### ✨ {event.title}")
+                        st.caption(f"📅 {event.date.strftime('%d %B %Y')}")
+
+                        # Show theme
+                        if event.details.get("theme"):
+                            st.success(f"**Tema:** {event.details['theme']}")
+
+                        # Show meaning
+                        if event.details.get("meaning"):
+                            st.markdown(f"**Por qué es favorable:** {event.details['meaning']}")
+
+                        # Show advice
+                        if event.details.get("advice"):
+                            st.info(f"💡 **Acción recomendada:** {event.details['advice']}")
+
+                        st.markdown("---")
             else:
                 st.info(
                     f"No se encontraron ventanas favorables para {selected_category_label} en el período seleccionado."
@@ -986,19 +1044,30 @@ def show_personal_forecast():
                 # List events for selected month
                 st.markdown("---")
                 for event in summary["events"]:
-                    card_class = "event-favorable" if event.is_favorable else "event-challenging"
-                    if event.event_type == EventType.POWER_DAY:
-                        card_class = "power-day"
+                    with st.expander(f"📅 {event.date.strftime('%d')} - {event.title}", expanded=False):
+                        # Show event type indicator
+                        if event.event_type == EventType.POWER_DAY:
+                            st.success("⚡ **Día de Poder**")
+                        elif event.event_type == EventType.LUNAR_PHASE:
+                            st.info("🌙 **Fase Lunar**")
+                        elif event.event_type == EventType.RETROGRADE:
+                            st.warning("⚠️ **Retrógrado**")
+                        elif event.event_type == EventType.TRANSIT:
+                            st.info("🪐 **Tránsito Personal**")
 
-                    st.markdown(f"""
-                    <div class="event-card {card_class}">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span class="milestone-header">{event.title}</span>
-                            <span class="milestone-date">{event.date.strftime("%d %b")}</span>
-                        </div>
-                        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">{event.description[:100]}...</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        # Show theme if available
+                        if event.details.get("theme"):
+                            st.markdown(f"**Tema:** {event.details['theme']}")
+
+                        # Show meaning
+                        if event.details.get("meaning"):
+                            st.markdown(f"**Significado:** {event.details['meaning']}")
+                        elif event.details.get("general"):
+                            st.markdown(f"**Significado:** {event.details['general']}")
+
+                        # Show advice
+                        if event.details.get("advice"):
+                            st.markdown(f"💡 **Consejo:** {event.details['advice']}")
 
 
 def show_transits():

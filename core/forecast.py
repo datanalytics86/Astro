@@ -120,11 +120,21 @@ def find_lunar_phases(start_date: datetime, end_date: datetime) -> List[Forecast
             if start_date <= exact_date <= end_date:
                 moon_sign = get_zodiac_sign(moon_pos.longitude_decimal)
 
+                # Get deep lunar phase meaning
+                lunar_meaning = get_lunar_phase_meaning(phase_name, moon_sign)
+
+                # Build rich description
+                rich_description = f"**{description}**\n\n"
+                rich_description += f"📖 {lunar_meaning.get('general', '')}\n\n"
+                rich_description += f"💡 **Consejo:** {lunar_meaning.get('advice', '')}\n\n"
+                rich_description += f"⚠️ **Evitar:** {lunar_meaning.get('avoid', '')}\n\n"
+                rich_description += f"🔮 {lunar_meaning.get('sign_focus', '')}"
+
                 events.append(ForecastEvent(
                     date=exact_date,
                     event_type=EventType.LUNAR_PHASE,
                     title=f"{phase_name} en {moon_sign}",
-                    description=description,
+                    description=rich_description,
                     importance=importance,
                     category=category,
                     is_favorable=is_favorable,
@@ -132,6 +142,10 @@ def find_lunar_phases(start_date: datetime, end_date: datetime) -> List[Forecast
                         "phase": phase_name,
                         "moon_sign": moon_sign,
                         "phase_angle": phase_angle,
+                        "general": lunar_meaning.get("general", ""),
+                        "advice": lunar_meaning.get("advice", ""),
+                        "avoid": lunar_meaning.get("avoid", ""),
+                        "sign_focus": lunar_meaning.get("sign_focus", ""),
                     }
                 ))
 
@@ -388,7 +402,7 @@ def find_personal_transits(natal_positions: Dict[str, float],
 def create_transit_event(transit_planet: str, natal_point: str,
                          aspect: str, date: datetime,
                          transit_longitude: float) -> ForecastEvent:
-    """Create a personal transit event."""
+    """Create a personal transit event with deep interpretation."""
 
     planet_names = {
         "jupiter": "Júpiter",
@@ -423,50 +437,49 @@ def create_transit_event(transit_planet: str, natal_point: str,
 
     title = f"{t_name} {a_name} {n_name}"
 
-    # Determine favorability and interpretation
-    favorable_aspects = ["trine", "sextile", "conjunction"]
-    is_favorable = aspect in favorable_aspects
+    # Get deep interpretation
+    deep_meaning = get_deep_transit_meaning(transit_planet, natal_point, aspect, sign)
 
-    if transit_planet == "jupiter":
+    # Determine favorability
+    favorable_aspects = ["trine", "sextile"]
+    challenging_aspects = ["square", "opposition"]
+    is_favorable = aspect in favorable_aspects or (aspect == "conjunction" and transit_planet == "jupiter")
+
+    # Build rich description
+    theme = deep_meaning.get("theme", title)
+    meaning = deep_meaning.get("meaning", "")
+    advice = deep_meaning.get("advice", "")
+    duration = deep_meaning.get("duration", "")
+    sign_influence = deep_meaning.get("sign_influence", "")
+
+    description = f"**{theme}**\n\n{meaning}\n\n💡 **Consejo:** {advice}\n\n⏱️ {duration}"
+    if sign_influence:
+        description += f"\n\n🔮 {sign_influence}"
+
+    # Determine importance and category
+    if transit_planet in ["pluto", "uranus"]:
+        importance = 5
+    elif transit_planet in ["saturn", "neptune"]:
+        importance = 5 if aspect in ["conjunction", "opposition"] else 4
+    else:  # jupiter
         importance = 4
-        if aspect in favorable_aspects:
-            description = f"Expansión y oportunidades en el área de tu {n_name}. Momento favorable para crecer."
-            category = DecisionCategory.NEW_BEGINNINGS
-        else:
-            description = f"Tensión de crecimiento. Cuidado con excesos relacionados con tu {n_name}."
-            category = DecisionCategory.CAREER
 
-    elif transit_planet == "saturn":
+    if natal_point in ["ascendant", "mc"]:
         importance = 5
-        if aspect == "conjunction":
-            description = f"Momento de madurez y responsabilidad. Estructuración importante de tu {n_name}."
-            is_favorable = True  # Challenging but constructive
-        elif aspect in ["trine", "sextile"]:
-            description = f"Estabilidad y consolidación. Buen momento para compromisos a largo plazo."
-        else:
-            description = f"Pruebas y restricciones. Período de aprendizaje kármico importante."
-            is_favorable = False
-        category = DecisionCategory.CAREER
 
-    elif transit_planet == "uranus":
-        importance = 5
-        description = f"Cambios inesperados y liberación. Revolución en el área de tu {n_name}."
+    # Determine category based on natal point
+    if natal_point in ["sun", "ascendant"]:
         category = DecisionCategory.NEW_BEGINNINGS
-        is_favorable = aspect in favorable_aspects
-
-    elif transit_planet == "neptune":
-        importance = 4
-        if aspect in favorable_aspects:
-            description = f"Inspiración espiritual y creatividad elevada en tu {n_name}."
-        else:
-            description = f"Confusión o desilusión posible. Evita decisiones importantes sin claridad."
-            is_favorable = False
+    elif natal_point == "moon":
         category = DecisionCategory.HEALTH
-
-    else:  # pluto
-        importance = 5
-        description = f"Transformación profunda y renacimiento en el área de tu {n_name}."
-        category = DecisionCategory.COMPLETION
+    elif natal_point == "venus":
+        category = DecisionCategory.LOVE
+    elif natal_point == "mars":
+        category = DecisionCategory.CAREER
+    elif natal_point == "mc":
+        category = DecisionCategory.CAREER
+    else:
+        category = DecisionCategory.NEW_BEGINNINGS
 
     return ForecastEvent(
         date=date,
@@ -481,6 +494,10 @@ def create_transit_event(transit_planet: str, natal_point: str,
             "natal_point": natal_point,
             "aspect": aspect,
             "sign": sign,
+            "theme": theme,
+            "meaning": meaning,
+            "advice": advice,
+            "duration": duration,
         }
     )
 
@@ -799,6 +816,315 @@ def generate_personal_forecast(birth_datetime: datetime,
         power_days=power_days,
         challenging_days=challenging_days,
     )
+
+
+# =============================================================================
+# DEEP INTERPRETATIONS
+# =============================================================================
+
+TRANSIT_MEANINGS = {
+    "jupiter": {
+        "sun": {
+            "conjunction": {
+                "theme": "Año de expansión personal y éxito",
+                "meaning": "Este es uno de los tránsitos más afortunados. Júpiter amplifica tu esencia, trayendo oportunidades de crecimiento, reconocimiento y abundancia. Tu confianza aumenta y las puertas se abren.",
+                "advice": "Atrévete a soñar en grande. Inicia proyectos importantes, pide ese aumento, expande tu negocio. El universo te respalda.",
+                "duration": "Efecto fuerte por 2-3 semanas, influencia general por 2 meses",
+            },
+            "trine": {
+                "theme": "Flujo armónico de buena fortuna",
+                "meaning": "La suerte fluye naturalmente hacia ti. Es un período donde el esfuerzo anterior da frutos sin forzar. Oportunidades llegan de forma orgánica.",
+                "advice": "Mantén los ojos abiertos a oportunidades. No necesitas empujar, pero sí estar receptivo y decir que sí.",
+                "duration": "Influencia positiva por 3-4 semanas",
+            },
+            "square": {
+                "theme": "Crecimiento a través de la tensión",
+                "meaning": "Puedes sentir inquietud o deseo de más. Cuidado con el exceso de confianza o gastos exagerados. El crecimiento viene, pero requiere ajustes.",
+                "advice": "Modera la tendencia a exagerar. Canaliza la energía expansiva en proyectos concretos, no en fantasías.",
+                "duration": "Tensión por 2-3 semanas",
+            },
+            "opposition": {
+                "theme": "Equilibrio entre dar y recibir",
+                "meaning": "Otros pueden traerte oportunidades, pero también desafíos de ego. Relaciones importantes bajo el foco. Posibles conflictos con figuras de autoridad.",
+                "advice": "Escucha las perspectivas ajenas. Las oportunidades vienen de otros, no de actuar solo.",
+                "duration": "Período intenso de 2-3 semanas",
+            },
+        },
+        "moon": {
+            "conjunction": {
+                "theme": "Expansión emocional y bienestar",
+                "meaning": "Tus emociones se expanden, sientes mayor optimismo y generosidad. Buen momento para temas domésticos, familia y bienes raíces.",
+                "advice": "Confía en tu intuición. Excelente para mudanzas, comprar casa o expandir la familia.",
+                "duration": "Efecto emocional por 3-4 semanas",
+            },
+        },
+        "venus": {
+            "conjunction": {
+                "theme": "Bendiciones en amor y dinero",
+                "meaning": "Uno de los mejores tránsitos para el amor y las finanzas. Atracción magnética, posibles encuentros significativos, mejora económica.",
+                "advice": "Es momento de invertir en amor y belleza. Citas importantes, bodas, compras de lujo favorecidas.",
+                "duration": "Ventana de oro por 2-3 semanas",
+            },
+        },
+        "mars": {
+            "conjunction": {
+                "theme": "Energía amplificada para la acción",
+                "meaning": "Tu capacidad de acción se multiplica. Entusiasmo por competir, emprender, conquistar. Cuidado con el exceso de confianza física.",
+                "advice": "Canaliza esta energía en deportes, proyectos ambiciosos o causas que te apasionen.",
+                "duration": "Impulso fuerte por 2-3 semanas",
+            },
+        },
+        "ascendant": {
+            "conjunction": {
+                "theme": "Nuevo ciclo de 12 años comienza",
+                "meaning": "Júpiter cruzando tu Ascendente marca el inicio de un nuevo ciclo vital de 12 años. Mayor visibilidad, optimismo y oportunidades personales.",
+                "advice": "Reinvéntate. Nueva imagen, nuevos proyectos personales, expansión de tu horizonte vital.",
+                "duration": "Influencia transformadora por 4-6 semanas",
+            },
+        },
+        "mc": {
+            "conjunction": {
+                "theme": "Cúspide de éxito profesional",
+                "meaning": "El punto más alto de Júpiter en tu carta. Reconocimiento público, promociones, logros profesionales visibles. Tu reputación brilla.",
+                "advice": "Momento cumbre para la carrera. Pide lo que mereces, acepta posiciones de liderazgo.",
+                "duration": "Período dorado profesional por 4-8 semanas",
+            },
+        },
+    },
+    "saturn": {
+        "sun": {
+            "conjunction": {
+                "theme": "Prueba de madurez y restructuración vital",
+                "meaning": "Saturno sobre tu Sol es un momento de verdad. Se revelan las estructuras de tu vida que funcionan y las que no. Puede sentirse pesado, pero construye cimientos duraderos.",
+                "advice": "Acepta responsabilidades, elimina lo que no sirve. Este es el momento de construir tu legado con paciencia.",
+                "duration": "Proceso profundo de 4-6 semanas, efectos por meses",
+            },
+            "square": {
+                "theme": "Crisis de crecimiento y obstáculos",
+                "meaning": "Frustraciones, retrasos y obstáculos te obligan a revisar tu dirección. No es castigo, es corrección de curso necesaria.",
+                "advice": "No luches contra las limitaciones. Pregúntate qué necesita cambiar fundamentalmente.",
+                "duration": "Período desafiante de 3-4 semanas",
+            },
+            "opposition": {
+                "theme": "Confrontación con la realidad externa",
+                "meaning": "Otros te reflejan tus limitaciones. Relaciones serias bajo presión. Compromisos puestos a prueba.",
+                "advice": "Las relaciones que sobrevivan serán más fuertes. Deja ir las que no tienen fundamento sólido.",
+                "duration": "Tensión relacional por 3-4 semanas",
+            },
+            "trine": {
+                "theme": "Consolidación estable y logros duraderos",
+                "meaning": "El trabajo duro da frutos estables. Reconocimiento por tu consistencia. Bases sólidas para el futuro.",
+                "advice": "Formaliza compromisos. Excelente para estructuras legales, contratos a largo plazo.",
+                "duration": "Estabilidad por 3-4 semanas",
+            },
+        },
+        "moon": {
+            "conjunction": {
+                "theme": "Madurez emocional forzada",
+                "meaning": "Emociones contenidas, posible melancolía o soledad. Procesamiento de temas familiares profundos. Sanación a través de la aceptación.",
+                "advice": "Permite el proceso de duelo si es necesario. La madurez emocional que ganas es invaluable.",
+                "duration": "Período introspectivo de 4-6 semanas",
+            },
+        },
+        "ascendant": {
+            "conjunction": {
+                "theme": "Restructuración de identidad",
+                "meaning": "Saturno entrando a tu primera casa inicia 2.5 años de trabajo en ti mismo. Mayor seriedad, posibles limitaciones físicas o de energía.",
+                "advice": "Asume responsabilidad por tu vida. Es momento de crecer, no de quejarse.",
+                "duration": "Inicio de ciclo de 2.5 años",
+            },
+        },
+        "mc": {
+            "conjunction": {
+                "theme": "Cumbre de responsabilidad profesional",
+                "meaning": "Saturno en tu Medio Cielo es la prueba de fuego de tu carrera. Máxima responsabilidad y visibilidad. El mundo te juzga por tus logros reales.",
+                "advice": "Demuestra tu valía con hechos, no palabras. Los logros ahora definen tu legado.",
+                "duration": "Período crucial de 4-8 semanas",
+            },
+        },
+    },
+    "uranus": {
+        "sun": {
+            "conjunction": {
+                "theme": "Revolución personal y liberación",
+                "meaning": "Tu vida nunca volverá a ser igual. Uranus despierta tu necesidad de autenticidad radical. Cambios inesperados que liberan tu verdadero yo.",
+                "advice": "Abraza el cambio aunque asuste. Lo que se rompe necesitaba romperse. Sé auténtico.",
+                "duration": "Transformación durante todo el año",
+            },
+            "square": {
+                "theme": "Tensión entre seguridad y libertad",
+                "meaning": "Inquietud extrema, deseo de romper con todo. Cuidado con decisiones impulsivas que destruyen sin construir.",
+                "advice": "Haz cambios graduales, no explosiones. La libertad verdadera requiere responsabilidad.",
+                "duration": "Inestabilidad por varios meses",
+            },
+            "opposition": {
+                "theme": "Otros traen el cambio inesperado",
+                "meaning": "Las sorpresas vienen de relaciones. Separaciones súbitas o encuentros revolucionarios. Tu pareja puede cambiar radicalmente.",
+                "advice": "No controles a otros. Permite que las relaciones evolucionen o terminen naturalmente.",
+                "duration": "Período impredecible por meses",
+            },
+        },
+        "moon": {
+            "conjunction": {
+                "theme": "Revolución emocional y doméstica",
+                "meaning": "Cambios súbitos en hogar, familia o vida emocional. Posible mudanza inesperada. Liberación de patrones emocionales antiguos.",
+                "advice": "Tu sistema nervioso está sobreestimulado. Practica grounding. Permite el cambio emocional.",
+                "duration": "Inestabilidad emocional por meses",
+            },
+        },
+        "ascendant": {
+            "conjunction": {
+                "theme": "Reinvención radical de identidad",
+                "meaning": "Uranus cruzando tu Ascendente te transforma de adentro hacia afuera. Nueva imagen, nueva personalidad, nueva vida.",
+                "advice": "Experimenta con tu apariencia y forma de presentarte. Sé quien realmente eres.",
+                "duration": "Transformación de 1-2 años",
+            },
+        },
+    },
+    "neptune": {
+        "sun": {
+            "conjunction": {
+                "theme": "Disolución del ego y despertar espiritual",
+                "meaning": "Período de confusión pero también de elevación espiritual. Tu sentido de identidad se vuelve difuso. Creatividad y compasión aumentan.",
+                "advice": "No tomes decisiones importantes basadas en ilusiones. Medita, crea arte, sirve a otros.",
+                "duration": "Proceso de 1-2 años",
+            },
+            "square": {
+                "theme": "Confusión y posible engaño",
+                "meaning": "Dificultad para ver la realidad claramente. Cuidado con engaños de otros o autoengaño. Escapismo tentador.",
+                "advice": "Verifica todo dos veces. Evita sustancias, inversiones dudosas y personas manipuladoras.",
+                "duration": "Período nebuloso por 1-2 años",
+            },
+        },
+        "moon": {
+            "conjunction": {
+                "theme": "Sensibilidad psíquica aumentada",
+                "meaning": "Tus emociones se vuelven porosas, absorbes el ambiente. Intuición elevada pero también vulnerabilidad emocional.",
+                "advice": "Protege tu energía. Excelente para arte, espiritualidad y sanación. Evita personas tóxicas.",
+                "duration": "Sensibilidad aumentada por 1-2 años",
+            },
+        },
+    },
+    "pluto": {
+        "sun": {
+            "conjunction": {
+                "theme": "Muerte y renacimiento del ego",
+                "meaning": "El tránsito más transformador. Plutón destruye lo que ya no sirve en tu identidad para que renazcas más auténtico y poderoso.",
+                "advice": "Suelta el control. La transformación es inevitable. Lo que muere necesitaba morir. Emerge más fuerte.",
+                "duration": "Proceso de 2-3 años",
+            },
+            "square": {
+                "theme": "Lucha de poder y crisis",
+                "meaning": "Enfrentamientos con poder externo o con tu propia sombra. Crisis que revelan dónde has dado tu poder.",
+                "advice": "No entres en luchas de poder que no puedes ganar. Trabaja tu sombra interior.",
+                "duration": "Intensidad por 2-3 años",
+            },
+            "opposition": {
+                "theme": "Transformación a través de otros",
+                "meaning": "Otros catalizan tu transformación. Relaciones intensas, posibles términos o renacimientos relacionales.",
+                "advice": "Las relaciones superficiales mueren. Las profundas se transforman. Acepta la intensidad.",
+                "duration": "Proceso relacional de 2-3 años",
+            },
+        },
+        "moon": {
+            "conjunction": {
+                "theme": "Transformación emocional profunda",
+                "meaning": "Plutón excava en tus emociones más profundas. Posible terapia intensa, sanación de traumas familiares, renacimiento emocional.",
+                "advice": "No reprimas lo que emerge. La sanación requiere enfrentar la oscuridad. Considera terapia profunda.",
+                "duration": "Proceso emocional de 2-3 años",
+            },
+        },
+        "ascendant": {
+            "conjunction": {
+                "theme": "Transformación total de identidad",
+                "meaning": "Plutón cruzando tu Ascendente es un renacimiento completo. La persona que eras muere para que nazca quien realmente eres.",
+                "advice": "Permite la muerte simbólica. No te aferres a quien eras. Abraza tu poder personal.",
+                "duration": "Transformación de 2-4 años",
+            },
+        },
+        "mc": {
+            "conjunction": {
+                "theme": "Transformación de carrera y destino",
+                "meaning": "Tu carrera y posición pública se transforman radicalmente. Posible ascenso al poder o caída y reconstrucción.",
+                "advice": "Usa el poder con ética. Lo que construyas ahora define tu legado. Evita luchas de poder.",
+                "duration": "Período de 2-4 años",
+            },
+        },
+    },
+}
+
+LUNAR_PHASE_MEANINGS = {
+    "Luna Nueva": {
+        "general": "La Luna Nueva es el momento de plantar semillas. Es el inicio de un nuevo ciclo de 28 días donde tus intenciones tienen máximo poder de manifestación.",
+        "advice": "Escribe tus intenciones, comienza proyectos, inicia conversaciones importantes. La energía favorece los nuevos comienzos.",
+        "avoid": "No es momento de culminar o cosechar. No esperes resultados inmediatos.",
+    },
+    "Cuarto Creciente": {
+        "general": "La Luna Creciente trae el primer desafío del ciclo. Los obstáculos que aparecen son oportunidades para fortalecer tu compromiso.",
+        "advice": "Toma acción decisiva. Enfrenta los problemas directamente. Ajusta tu plan si es necesario.",
+        "avoid": "No abandones ante el primer obstáculo. La persistencia es clave.",
+    },
+    "Luna Llena": {
+        "general": "La Luna Llena ilumina lo que estaba oculto. Es momento de culminación, revelación y cosecha de lo sembrado hace dos semanas.",
+        "advice": "Observa los resultados de tus acciones. Celebra logros. Libera lo que ya no sirve.",
+        "avoid": "No inicies nuevos proyectos. Las emociones están intensificadas - evita decisiones impulsivas.",
+    },
+    "Cuarto Menguante": {
+        "general": "La Luna Menguante es tiempo de soltar, reflexionar y preparar el cierre del ciclo. La energía favorece la introspección.",
+        "advice": "Completa proyectos pendientes. Reflexiona sobre lo aprendido. Descansa y recarga.",
+        "avoid": "No inicies nada nuevo. No es momento de empujar hacia adelante.",
+    },
+}
+
+SIGN_MEANINGS_FOR_EVENTS = {
+    "Aries": "energía de iniciativa, coraje y acción directa",
+    "Tauro": "estabilidad, recursos materiales y placeres sensoriales",
+    "Géminis": "comunicación, aprendizaje y conexiones mentales",
+    "Cáncer": "hogar, familia, emociones y nutrición",
+    "Leo": "creatividad, expresión personal y reconocimiento",
+    "Virgo": "servicio, salud, trabajo diario y perfeccionamiento",
+    "Libra": "relaciones, equilibrio, justicia y armonía",
+    "Escorpio": "transformación, poder, intimidad y recursos compartidos",
+    "Sagitario": "expansión, filosofía, viajes y búsqueda de significado",
+    "Capricornio": "ambición, estructura, carrera y logros a largo plazo",
+    "Acuario": "innovación, comunidad, libertad y visión futurista",
+    "Piscis": "espiritualidad, compasión, arte y conexión universal",
+}
+
+
+def get_deep_transit_meaning(transit_planet: str, natal_point: str,
+                             aspect: str, sign: str) -> dict:
+    """Get deep interpretation for a transit."""
+    planet_data = TRANSIT_MEANINGS.get(transit_planet, {})
+    point_data = planet_data.get(natal_point, {})
+    aspect_data = point_data.get(aspect, {})
+
+    if aspect_data:
+        result = aspect_data.copy()
+        result["sign_influence"] = f"En {sign}, esto se manifiesta a través de {SIGN_MEANINGS_FOR_EVENTS.get(sign, sign)}."
+        return result
+
+    # Default interpretation if specific one not found
+    return {
+        "theme": f"Tránsito de {transit_planet.capitalize()} a {natal_point}",
+        "meaning": f"Este tránsito activa el área de tu carta relacionada con {natal_point}.",
+        "advice": "Observa los temas que emergen en esta área de tu vida.",
+        "duration": "Variable según el planeta",
+        "sign_influence": f"La energía se expresa a través de {SIGN_MEANINGS_FOR_EVENTS.get(sign, sign)}.",
+    }
+
+
+def get_lunar_phase_meaning(phase: str, moon_sign: str) -> dict:
+    """Get deep interpretation for a lunar phase."""
+    phase_data = LUNAR_PHASE_MEANINGS.get(phase, {})
+    sign_energy = SIGN_MEANINGS_FOR_EVENTS.get(moon_sign, moon_sign)
+
+    return {
+        "general": phase_data.get("general", ""),
+        "advice": phase_data.get("advice", ""),
+        "avoid": phase_data.get("avoid", ""),
+        "sign_focus": f"Con la Luna en {moon_sign}, el foco está en {sign_energy}. Los temas de {moon_sign} están especialmente activados.",
+    }
 
 
 # =============================================================================

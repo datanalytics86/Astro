@@ -14,7 +14,7 @@ from enum import Enum
 import swisseph as swe
 
 from .time_engine import datetime_to_jd, jd_to_datetime
-from .ephemeris import get_position, get_all_positions, PLANETS
+from .ephemeris import get_position, get_all_positions
 
 
 class EventType(Enum):

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Astro Perfil</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Astro Perfil</h1>
+      <p class="subtitle">Ingresa tu fecha y hora de nacimiento para ver rasgos por temática y proyección astrológica.</p>
+
+      <form id="astro-form" class="card">
+        <h2>Tu carta base</h2>
+        <label for="birth-date">Fecha de nacimiento</label>
+        <input id="birth-date" name="birthDate" type="date" required />
+
+        <label for="birth-time">Hora de nacimiento</label>
+        <input id="birth-time" name="birthTime" type="time" required />
+
+        <button type="submit">Calcular perfil y proyección</button>
+      </form>
+
+      <section id="result" class="card hidden" aria-live="polite">
+        <h2 id="sign-title"></h2>
+        <p id="core-trait"></p>
+        <div id="topics" class="topics"></div>
+      </section>
+
+      <section id="forecast" class="card hidden" aria-live="polite">
+        <h2>Ingeniería astrológica (proyección)</h2>
+        <p class="muted">Estimación de próximos meses y años desde una fecha actual de referencia.</p>
+
+        <div class="forecast-controls">
+          <div>
+            <label for="current-date">Fecha actual de referencia</label>
+            <input id="current-date" name="currentDate" type="date" required />
+          </div>
+          <div>
+            <label for="horizon">Horizonte</label>
+            <select id="horizon" name="horizon">
+              <option value="6">6 meses</option>
+              <option value="12" selected>12 meses</option>
+              <option value="24">24 meses</option>
+              <option value="36">3 años</option>
+              <option value="60">5 años</option>
+            </select>
+          </div>
+          <button id="forecast-btn" type="button">Actualizar proyección</button>
+        </div>
+
+        <p id="forecast-summary"></p>
+        <div id="forecast-timeline" class="topics"></div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
